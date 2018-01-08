@@ -31,6 +31,7 @@ class Game:
 		self.bot = bot
 		self.bimbo = bimbo.BetYourBimbo(bot)
 		self.reset(numDecks)
+		self.set_game_state("STOPPED")
 
 
 	def getRemainingCooldown(self):
@@ -227,11 +228,11 @@ class Game:
 		o = ""
 		if self.state == "PLAYING":
 				
-			if force == "force":
+			if force == "force" or force == "FORCE":
 				o += "<@{}> has FORCED the current player to stay.\nPlease be careful when using this function!".format(ctx.message.author.id)
 				
 			player = self.players[self.turn]
-			o += "<@{}> is staying with {}...".format(player.name, player.getBJCount())
+			o += "\n<@{}> is staying with {}...".format(player.name, player.getBJCount())
 			self.turn += 1
 		else:
 			o = "I can't do that yet..."

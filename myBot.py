@@ -12,13 +12,15 @@ import betyourbimbo as bimbo
 
 description = '''Welcome to the Bimbonator 3001x!  \nYou may use the following commands:'''
 
+TEST = True
+
 CMD_PREFIX = '!'
 
 bot = commands.Bot(command_prefix=CMD_PREFIX, description=description)
 bimbo = bimbo.BetYourBimbo(bot)
 
 game = game.Game(bot)
-game.set_game_state("STOPPED")
+idleSince = int(time.time())
 
 def removeUserFormatting(userid):
 	if userid[0:2] == "<@":
@@ -180,17 +182,28 @@ async def stay(ctx, force="no"):
 	
 	if game.players[game.turn].name != ctx.message.author.id:
 		print("Attempt to stay someone else's hand!")
-		if force == "force" and (not bimbo.isOwlCoEmployee(ctx.message.author.id)):
+		
+		print (force == "force" or force == "FORCE") 
+		print (bimbo.isOwlCoEmployee(ctx.message.author.id))
+		print (force != "force" and force != "FORCE") 
+		print (not bimbo.isOwlCoEmployee(ctx.message.author.id))
+		
+		if (force == "force" or force == "FORCE") and not bimbo.isOwlCoEmployee(ctx.message.author.id):
 			print("FORCED attempt failed!")
 			await ctx.send("**Silly bimbo!** Only OwlCo employees can force someone else's hand to continue")
-		else:
-			await ctx.send("Sorry!  Not your turn!")
+			return
+		
+		if (force != "force" and force != "FORCE") or not bimbo.isOwlCoEmployee(ctx.message.author.id):
+			print("FORCED attempt failed!")
+			await ctx.send("Sorry, <@{}>! Please wait your turn!".format(ctx.message.author.id))
+			return
+			
+		await ctx.send("Forcing idle player to stay...")
 				
 		o = game.playersTurn()
 		for item in o:
 			await ctx.send(item)
 			await asyncio.sleep(1)
-		return
 	
 	o = game.stay(ctx, force)
 	await ctx.send(o)
@@ -201,11 +214,9 @@ async def stay(ctx, force="no"):
 		await asyncio.sleep(1)
 
 
-
-
 @bot.event
 async def on_message(message):
-	global CMD_PREFIX
+	global CMD_PREFIX, idlesince
 
 	accept_channels = ["bot_test", "betyourbimbo"]
 	chn = str(message.channel)
@@ -216,25 +227,15 @@ async def on_message(message):
 	
 	if message.content[0] == CMD_PREFIX:
 		bimbo.logCommand(message.author.id, message.content)
+		
+	if chn in accept_channels:
+		idleSince = int(time.time())
 
 	await bot.process_commands(message)
 
 
-
-async def myTimer():
-	print("Mytimer: got here!")
-	await bot.wait_until_ready()
-	print("Mytimer: got ready!")
-	counter = 0
-	channel = discord.Object(id='391240149897576451')  # 391240149897576451 = bot_test
-	while not bot.is_closed:
-		counter += 1
-		await bot.send_message(channel, counter)
-		await asyncio.sleep(5) # task runs every 5 seconds
-
-# bot.loop.create_task(myTimer())
-
-# test bot.run(test_key)
-# release  bot.run(release_key)
-bot.run(test_key) # test  
+if TEST:
+	bot.run(test_key)
+else:
+	bot.run(release_key)
 
