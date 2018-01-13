@@ -20,11 +20,10 @@ class BetYourBimbo():
 		num = 1
 		recipient = ctx.message.author.id
 		gender = "B"
-		print ("parse: {}".format(args))
+		print ("{} --> parse: {}".format(time.strftime("%m/%d/%y %H:%M %Z"), args))
 		
 		
 		for arg in args:
-			print(arg)
 			if arg.isdigit():
 				num = int(arg)
 			elif isinstance(arg,str):
@@ -47,7 +46,7 @@ class BetYourBimbo():
 		cursor = db.cursor()
 		cursor.execute("INSERT into rewards (UserID, Type, DateTime) values (?, ?, ?)",(userid, rewardType, now_time) )	
 		db.commit()
-		print("Added tally for {}'s {}".format(userid, rewardType))
+		print("{} --> Added tally for {}'s {}".format(time.strftime("%m/%d/%y %H:%M %Z"), userid, rewardType))
 		
 	
 	def removeUserFormatting(self, userid):
@@ -88,11 +87,16 @@ class BetYourBimbo():
 	def processTimeouts(self):
 		db = sqlite3.connect('Bimbot.sqlite')
 		cursor = db.cursor()
-		expireTime = int(time.time()) - 86400
+		effectExpireTime = int(time.time()) - 86400
+		rewardExpireTime = int(time.time()) - 3600
 
-		#print("Processing effect timeouts for timestamps older than: {}".format(expireTime))
-		sql = "UPDATE current set RemovedFlag = 'T' where Timestamp < '{}'".format(expireTime)
-		cursor.execute(sql)
+		#print("Processing effect timeouts for timestamps older than: {}".format(effectExpireTime))
+		sql = "UPDATE current set RemovedFlag = 'T' where Timestamp < '{}'".format(effectExpireTime)
+		cursor.execute("UPDATE current set RemovedFlag = 'T' where Timestamp < ?", (effectExpireTime,))
+		db.commit()
+		
+		#print("Processing reward timeouts for timestamps older than: {}".format(rewardExpireTime))
+		cursor.execute("DELETE from rewards where DateTime < ?", (rewardExpireTime,))
 		db.commit()
 		db.close()
 	
@@ -126,7 +130,7 @@ class BetYourBimbo():
 		val = cursor.fetchone()
 		if val != None:
 			val = val[0]
-		print("getUserGender: gender = {}".format(val))
+		print("{} --> getUserGender: gender = {}".format(time.strftime("%m/%d/%y %H:%M %Z"), val))
 		return val
 
 
@@ -134,7 +138,7 @@ class BetYourBimbo():
 		userid = self.removeUserFormatting(userid)
 		db = sqlite3.connect('Bimbot.sqlite')
 		cursor = db.cursor()
-		cursor.execute("INSERT OR REPLACE into userinfo values (?, ?) ",(userid, gender.upper()) )
+		cursor.execute("INSERT OR REPLACE into userinfo (userid, gender, lastSeen) values (?, ?, ?) ",(userid, gender.upper(), int(time.time())) )
 		db.commit()
 		return gender
 
@@ -183,7 +187,7 @@ class BetYourBimbo():
 
 
 	def choose_random_effect(self, gender="B"):
-		print("Choosing effect: gender is {}".format(gender))
+		print("{} --> Choosing effect: gender is {}".format(time.strftime("%m/%d/%y %H:%M %Z"), gender))
 		db = sqlite3.connect('Bimbot.sqlite')
 		query = "SELECT * FROM effects "
 
@@ -264,7 +268,7 @@ class BetYourBimbo():
 		nowtime = int(time.time())
 		cursor.execute("UPDATE current SET UserID = ? WHERE (Type = 'T' AND UserID = ? AND ID = ?)" , (touserid, fromuserid, tokenid))
 		db.commit()
-		print( "<@{}> gave the __**{}**__ token to <@{}>".format(fromuserid, dbEffect[3], touserid))
+		print( "{} --> <@{}> gave the __**{}**__ token to <@{}>".format(time.strftime("%m/%d/%y %H:%M %Z"), fromuserid, dbEffect[3], touserid))
 		return "<@{}> gave the __**{}**__ token to <@{}>".format(fromuserid, dbEffect[3], touserid)
 
 
@@ -274,13 +278,14 @@ class BetYourBimbo():
 		cursor = db.cursor()
 		charge = True
 		
+		print("{} --> UserID: {}\nAuthor: {}\nIsEmployee: {}".format(time.strftime("%m/%d/%y %H:%M %Z"), userid, ctx.message.author.id, self.isOwlCoEmployee(ctx.message.author.id)))
+		
 		if userid != ctx.message.author.id and self.isOwlCoEmployee(ctx.message.author.id):
 			charge = False
+			print("{} --> Charge = {}".format(time.strftime("%m/%d/%y %H:%M %Z"), charge))
 		
 		cursor.execute("SELECT * from current where (Type = 'E' or Type = 'P') and ID = ? and userid = ?", (effectid, userid))
 		dbEffect = cursor.fetchall()
-		
-		#print(dbEffect)
 		
 		if len(dbEffect) == 0:
 			return "That effect does not exist for <@{}>.".format(userid)
@@ -292,15 +297,15 @@ class BetYourBimbo():
 		
 		if charge:
 			if not self.removeReward(userid, 'W'):
-				if not self.isOwlCoEmployee(userid):
+				if not self.isOwlCoEmployee(ctx.message.author.id):
 					return "**Sorry, <@{}> doesn't have a WIN ticket to use for this action!  Play more!".format(userid)
 		
 		nowtime = int(time.time())
-		cursor.execute("UPDATE current SET RemovedFlag = 'Y', RemovedByUserID = ?, RemovedTimeStamp = ? WHERE (Type = 'E' AND UserID = ? AND ID = ?)" , (userid, nowtime, userid, effectid))
+		cursor.execute("UPDATE current SET RemovedFlag = 'Y', RemovedByUserID = ?, RemovedTimeStamp = ? WHERE (Type = 'E' AND UserID = ? AND ID = ?)" , (ctx.message.author.id, nowtime, userid, effectid))
 		db.commit()
 		db.close()
 		
-		print( "Removed __**{}**__ from <@{}>".format(dbEffect[3], userid))
+		print( "{} --> Removed __**{}**__ from <@{}>".format(time.strftime("%m/%d/%y %H:%M %Z"), dbEffect[3], userid))
 		return "Removed __**{}**__ from <@{}>".format(dbEffect[3], userid)
 		
 		
@@ -340,7 +345,7 @@ class BetYourBimbo():
 		cursor.execute("SELECT count(*) FROM current WHERE (Type = 'T') AND RemovedFlag is null AND UserID = ? and Timestamp > ? ORDER BY Type ASC, Timestamp ASC", (userid, nowtime-86400))
 		rval = cursor.fetchone()[0]
 		db.close()
-		print("Num tokens: {}".format(rval))
+		#print("Num tokens: {}".format(rval))
 		return rval
 		
 	def summarize_user_tokens(self):
@@ -350,7 +355,7 @@ class BetYourBimbo():
 		cursor.execute("select UserID, count(UserID) as numTokens from current where type = 'T' and RemovedFlag is null and Timestamp > ? group by UserID order by numTokens DESC", (nowtime-86400,))
 		rval = cursor.fetchall()
 		db.close()
-		print (rval)
+		#print (rval)
 		return rval
 
 
@@ -370,7 +375,13 @@ class BetYourBimbo():
 		cursor.execute("UPDATE current SET RemovedFlag = 'Y', RemovedByUserID = ?, RemovedTimeStamp = ? WHERE (Type = 'T' AND UserID = ? AND ID = ?)" , (userid, nowtime, userid, token[0]))
 		db.commit()
 		db.close()
-		return "<@{0}> throws a __**{1}**__ token at <@{2}>!  It hits, and <@{2}> glows slightly!".format(userid, token[3], thrownAt)
+		
+		#print ("'{}' / '{}'".format(userid, thrownAt))
+		
+		if str(userid) == str(thrownAt):
+			return "<@{0}> decides to keep the __**{1}**__ effect for themself! <@{0}> snaps the token & is covered in a shower of magical sparkles!".format(userid, token[3])
+		else:
+			return "<@{0}> throws a __**{1}**__ token at <@{2}>!  It hits, and <@{2}> glows slightly!".format(userid, token[3], thrownAt)
 		
 		
 	
@@ -382,7 +393,7 @@ class BetYourBimbo():
 		if userid != ctx.message.author.id and self.isOwlCoEmployee(ctx.message.author.id):
 			charge = False
 		
-		print ("Charge = {}".format(charge))
+		#print ("Charge = {}".format(charge))
 		
 		if numTokens > 10:
 			output = "**Sorry!** A maximum of 10 tokens can be given out at any one time!"
@@ -419,7 +430,7 @@ class BetYourBimbo():
 
 
 
-	def effects(self, userid, numEffects, gender):
+	def effects(self, ctx, userid, numEffects, gender):
 		self.processTimeouts()
 		output = ""
 		
@@ -430,8 +441,16 @@ class BetYourBimbo():
 		if numEffects > 1:
 			output += "__**Muhahaha! {0} effects for <@{1}>, coming right up!**__\n\n".format(numEffects, userid)
 			
+		#print("UserID: {}\nAuthor: {}\nIsEmployee: {}".format(userid, ctx.message.author.id, self.isOwlCoEmployee(ctx.message.author.id)))
+		
+		charge = True
+		
+		if userid != ctx.message.author.id and self.isOwlCoEmployee(ctx.message.author.id):
+			charge = False
+			#print("Charge = {}".format(charge))
+			
 		for x in range(numEffects):	
-			if self.removeReward(userid, 'L') or self.isOwlCoEmployee(userid):
+			if self.removeReward(userid, 'L') or not charge or self.isOwlCoEmployee(ctx.message.author.id):
 				effect = self.choose_random_effect(gender)
 				effect_id = self.store_effect("E", userid, effect[1])
 				if x >= 1:
@@ -467,7 +486,7 @@ class BetYourBimbo():
 
 		for x in range(numPenalties):	
 			gender = self.getUserGender(userid)
-			print("Penalty Gender: {}".format(gender))
+			#print("Penalty Gender: {}".format(gender))
 			effect = self.choose_random_effect(gender)
 			penalty_id = self.store_effect("P", userid, effect[1])
 			if x > 1:
@@ -510,6 +529,7 @@ class BetYourBimbo():
 	@commands.command()
 	async def showRewards(self, ctx, *args):
 		"""List the reward 'tickets' a user has."""
+		self.processTimeouts()
 		pargs = self.parse_args(args, ctx)
 		num = pargs['num']
 		userID = pargs['recipient']
@@ -521,6 +541,8 @@ class BetYourBimbo():
 				o = "<@{}> has:".format(userID)
 				for reward in userRewards:
 					o += "\n{} {}s".format(reward[2], reward[1])
+					
+				o += "\n\nNOTE: Rewards expire one hour after being issued!  Use them or lose them!"
 				await ctx.send(o)
 			else:
 				await ctx.send("<@{}> doesn't have any current rewards.".format(userID))
@@ -531,6 +553,7 @@ class BetYourBimbo():
 	@commands.command(hidden=True)
 	async def addWin(self, ctx, *args):
 		"""OwlCo Employee Use ONLY!"""
+		self.processTimeouts()
 		if self.isOwlCoEmployee(ctx.message.author.id):
 			pargs = self.parse_args(args, ctx)
 			num = pargs['num']
@@ -543,6 +566,7 @@ class BetYourBimbo():
 	@commands.command(hidden=True)
 	async def addLoss(self, ctx, *args):
 		"""OwlCo Employee Use ONLY!"""
+		self.processTimeouts()
 		if self.isOwlCoEmployee(ctx.message.author.id):
 			pargs = self.parse_args(args, ctx)
 			num = pargs['num']
@@ -556,6 +580,7 @@ class BetYourBimbo():
 	@commands.command(hidden=True)
 	async def addBJ(self, ctx, *args):
 		"""OwlCo Employee Use ONLY!"""
+		self.processTimeouts()
 		if self.isOwlCoEmployee(ctx.message.author.id):
 			pargs = self.parse_args(args, ctx)
 			num = pargs['num']
@@ -713,7 +738,7 @@ class BetYourBimbo():
 		
 
 
-	@commands.command(aliases=['lookAt', 'lookat'])
+	@commands.command(aliases=['lookAt', 'lookat', 'view', 'look'])
 	async def examine(self, ctx, *args):
 		"""Shows the effects active for a user.
 		\nUser is optional & must be specified in @user format.
@@ -763,10 +788,6 @@ class BetYourBimbo():
 		else:
 			o += "<@{}> has no current effects".format(userid)
 			await ctx.send( o )
-
-
-
-
 	
 	
 	@commands.command(name='mytokens', aliases=['showtokens'], pass_context=True)
@@ -800,18 +821,21 @@ class BetYourBimbo():
 		await user.send(o)
 	
 	
-	@commands.command()
-	async def throw(self, ctx, tokenID, thrownAt):
+	@commands.command(aliases=['snap', 'fumble'])
+	async def throw(self, ctx, tokenID, thrownAt="SELF"):
 		"""Throws a token at a user 
 		\nUser must be specified in @user format
 		\nID is found by using !mytokens
 		\nExamples:\n---------
 		\n!throw 12 @user -> throws a token at @user
 		\n\n**NOTE:** OwlCo has asked me to inform you that tokens expire 24 hours after their creation, and are valid in the casino and wherever fine OwlCo tokens are accepted."""
-		
-		thrownAt = self.removeUserFormatting(thrownAt)
-		
 		userID = ctx.message.author.id
+
+		if thrownAt == "SELF":
+			thrownAt = userID
+		else:
+			thrownAt = self.removeUserFormatting(thrownAt)
+		
 			
 		if self.has_token(userID, tokenID):
 			if thrownAt == self.bot.user.id:
@@ -824,7 +848,6 @@ class BetYourBimbo():
 		else:
 			await ctx.send("Ooops! You don't have that token!")
 			return
-		
 
 
 	@commands.command(aliases=['tokens'])		
@@ -900,7 +923,7 @@ class BetYourBimbo():
 			await ctx.send("**Silly bimbo!**  Only OwlCo employees can give other users effects! Assume the position...\n\n{}".format(self.penalties(ctx.message.author.id,1)))
 			return
 		
-		o = self.effects(recipient, num, gender)
+		o = self.effects(ctx, recipient, num, gender)
 		await ctx.send(o)
 
 	

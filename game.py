@@ -8,7 +8,7 @@ class Game:
 	COOLDOWN_PERIOD = 90  #seconds
 
 	def set_game_state(self, state):
-		print("Changing game state to: {}".format(state))
+		print("{} --> Changing game state to: {}".format(time.strftime("%m/%d/%y %H:%M %Z"), state))
 		self.state = state
 
 
@@ -20,6 +20,10 @@ class Game:
 		self.dealer = player.Player("Dealer")
 		self.deck = cards.Cards(numDecks)
 		self.set_game_state("WAITING_ON_PLAYERS")
+		
+		# Set a cooldown time if it doesn't exist
+		# This allows for it to set the first run, but not allow players to
+		# bypass the cooldown period by doing !stopBJ followed by !startBJ
 		try:
 			self.cooldownTime
 		except AttributeError:
@@ -31,6 +35,7 @@ class Game:
 		self.bot = bot
 		self.bimbo = bimbo.BetYourBimbo(bot)
 		self.reset(numDecks)
+		self.set_game_state("STOPPED")
 
 
 	def getRemainingCooldown(self):
@@ -129,7 +134,7 @@ class Game:
 		
 	def playersTurn(self):
 		output = []
-		print("-----> playersTurn <-----")
+		print("{} -----> playersTurn <-----".format(time.strftime("%m/%d/%y %H:%M %Z"), ))
 		if self.state == "PLAYING":
 			o = ""
 			
@@ -227,11 +232,11 @@ class Game:
 		o = ""
 		if self.state == "PLAYING":
 				
-			if force == "force":
+			if force == "force" or force == "FORCE":
 				o += "<@{}> has FORCED the current player to stay.\nPlease be careful when using this function!".format(ctx.message.author.id)
 				
 			player = self.players[self.turn]
-			o += "<@{}> is staying with {}...".format(player.name, player.getBJCount())
+			o += "\n<@{}> is staying with {}...".format(player.name, player.getBJCount())
 			self.turn += 1
 		else:
 			o = "I can't do that yet..."

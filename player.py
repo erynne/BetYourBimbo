@@ -1,5 +1,6 @@
 import random
 import itertools
+import time
 
 class Player:
 	
@@ -35,7 +36,7 @@ class Player:
 		return self.getHand(self.handNumber)
 
 	def getDealerHand(self):
-		print (self.hands[0])
+		#print (self.hands[0])
 		return [self.hands[0][0], '??']
 
 	def getBJCount(self, handNumber=0):
