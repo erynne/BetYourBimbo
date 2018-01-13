@@ -125,7 +125,7 @@ class BetYourBimbo():
 		val = cursor.fetchone()
 		if val != None:
 			val = val[0]
-		print("{} --> getUserGender: gender = {}".format(time.strftime("%m/%d/%y %H:%M %Z"), val))
+		# print("{} --> getUserGender: gender = {}".format(time.strftime("%m/%d/%y %H:%M %Z"), val))
 		return val
 
 
@@ -943,11 +943,11 @@ class BetYourBimbo():
 			if hitwith == "E":
 				effect = self.choose_random_effect(gender)
 				effect_id = self.store_effect("E", userID, effect[1])
-				await channel.send("<@{0}> is hit by a **{1}** token, which pops!  <@{0}> glows brightly for a moment....".format(userID, effect[1]))
+				await channel.send("<@{0}> is hit by a **{1}** token, which pops! (ID#{2}) <@{0}> glows brightly for a moment.... ".format(userID, effect[1], effect_id))
 			elif hitwith == "T":
 				effect = self.choose_random_effect('B')
 				effect_id = self.store_effect("T", userID, effect[1])
-				await channel.send("<@{}> catches a **{}** token and pockets it!".format(userID, effect[1]))
+				await channel.send("<@{}> catches a **{}** token and pockets it! (ID#{})".format(userID, effect[1], effect_id))
 			else:
 				await channel.send("<@{}> is missed completely. Better luck next go!".format(userID))
 		return

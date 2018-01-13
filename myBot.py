@@ -238,23 +238,28 @@ async def cannonFire(bot,TEST):
 	chn = 355797842876563456  # production channel
 	
 	lowFireMins = 10
-	hiFireMins = 180
+	hiFireMins = 90
 	
 	if TEST:
 		chn = 391240149897576451 # test channel
+		lowFireMins = 0
+		hiFireMins = 2
+		
 	lastFired = int(time.time())
 	print("starting loop")
 	await bot.wait_until_ready()
 	counter = 0
-	channel = bot.get_channel(391240149897576451)
+	channel = bot.get_channel(chn)
 	print(channel)
 	print(bot.is_closed())
 	while not bot.is_closed():
 		waitTime = random.randint((lowFireMins * 60), (hiFireMins * 60))
 		if counter > 0:
-			await channel.send("{}: next in {} mins".format(counter,waitTime / 60))
+			print("{} --> next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), waitTime / 60))
 			await bimbo.cannon(bot, channel, lastFired)
+			await channel.send("**The __BetYourBimbo Token Cannon__ is armed once again and will fire sometime in the next {} - {} minutes!**".format(lowFireMins, hiFireMins))
 		else: 
+			print("{} --> next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), waitTime / 60))
 			await channel.send("**The __BetYourBimbo Token Cannon__ is armed and will fire sometime in the next {} - {} minutes!**".format(lowFireMins, hiFireMins))
 		counter += 1
 		await asyncio.sleep(waitTime)
