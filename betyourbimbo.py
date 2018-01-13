@@ -9,11 +9,6 @@ class BetYourBimbo():
 	
 	TOKEN_LIMIT = 13
 
-	
-	
-	def __init__(self, bot):
-		self.bot = bot
-
 
 	def parse_args(self, args, ctx):
 		
@@ -253,7 +248,16 @@ class BetYourBimbo():
 		return effects
 
 
-
+	def get_last_seen(self, timeInSecs):
+		db = sqlite3.connect('Bimbot.sqlite')
+		cursor = db.cursor()
+		nowtime = int(time.time())
+		cursor.execute("SELECT userid FROM userinfo WHERE lastseen > ?", (nowtime - timeInSecs, ))
+		retVal = cursor.fetchall()
+		retVal = [int(i[0]) for i in retVal] # remove the tuples from the list
+		print("{} --> Eligible: {}".format(time.strftime("%m/%d/%y %H:%M %Z"), retVal)) 
+		db.close()
+		return retVal
 
 
 	def give_token(self, fromuserid, tokenid, touserid):
@@ -425,9 +429,6 @@ class BetYourBimbo():
 			output += "**<@{0}> rolls a {1} and receives a __{2}__ token!! (ID # {3})**".format(userid, effect[0], effect[1], token_id)	
 				
 		return output
-
-
-
 
 
 	def effects(self, ctx, userid, numEffects, gender):
@@ -790,7 +791,7 @@ class BetYourBimbo():
 			await ctx.send( o )
 	
 	
-	@commands.command(name='mytokens', aliases=['showtokens'], pass_context=True)
+	@commands.command(name='mytokens', aliases=['showtokens', 'myTokens', 'inventory', 'inv'], pass_context=True)
 	async def mytokens(self, ctx):
 		"""Gets your current token inventory."""
 		userID = ctx.message.author.id
@@ -925,6 +926,34 @@ class BetYourBimbo():
 		
 		o = self.effects(ctx, recipient, num, gender)
 		await ctx.send(o)
+	
+	async def cannon(self, bot, channel, lastFired):
+		eligible = self.get_last_seen(600)  # 600 = 10 minutes seen time
+		possible = ['E', 'T', 'N']
+		await channel.send("__**BOOM!  The Bimbo Cannon goes off, showering the room in BetYourBimbo tokens!**__")
+		if eligible == []:
+			await channel.send("__**Oh no!**__  No one's around....All of the tokens & effects fade into the ether.\nBetter luck next time!")
+			return
+		
+		for userID in eligible:
+			gender = self.getUserGender(userID)
+			if gender is None:
+				gender = "B"
+			hitwith = random.choice(possible)
+			if hitwith == "E":
+				effect = self.choose_random_effect(gender)
+				effect_id = self.store_effect("E", userID, effect[1])
+				await channel.send("<@{0}> is hit by a **{1}** token, which pops!  <@{0}> glows brightly for a moment....".format(userID, effect[1]))
+			elif hitwith == "T":
+				effect = self.choose_random_effect('B')
+				effect_id = self.store_effect("T", userID, effect[1])
+				await channel.send("<@{}> catches a **{}** token and pockets it!".format(userID, effect[1]))
+			else:
+				await channel.send("<@{}> is missed completely. Better luck next go!".format(userID))
+		return
+	
+	def __init__(self, bot):
+		self.bot = bot
 
 	
 def setup(bot):
