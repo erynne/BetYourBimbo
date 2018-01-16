@@ -13,7 +13,7 @@ class Game:
 
 
 
-	def reset(self, numDecks=1):
+	def reset(self, numDecks=4):
 		self.set_game_state("START")
 		self.players = []
 		self.turn = 0
@@ -31,7 +31,7 @@ class Game:
 
 
 
-	def __init__(self, bot, numDecks=1):
+	def __init__(self, bot, numDecks=4):
 		self.bot = bot
 		self.bimbo = bimbo.BetYourBimbo(bot)
 		self.reset(numDecks)
@@ -43,7 +43,7 @@ class Game:
 
 
 	def checkCooldown(self):
-		if self.getRemainingCooldown() < 0:
+		if self.getRemainingCooldown() <= 0:
 			return True
 		else:
 			return False

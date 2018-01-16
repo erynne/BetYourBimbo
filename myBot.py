@@ -94,7 +94,7 @@ async def startBJ(ctx):
 	"""Start a game of blackjack (Note: will reset an ongoing game!)"""
 	global game
 	
-	game.reset(2)
+	game.reset(4)
 	await ctx.send("Starting Blackjack!  Who'd like to play?\nRespond with the __!playing__ command to join.\n__!out__ will get you out of the game.")
 	
 	
@@ -234,6 +234,58 @@ async def on_message(message):
 	await bot.process_commands(message)
 
 
+async def cannonFireOnActivity(bot, TEST):
+	chn = 355797842876563456  # production channel
+	
+	waitTimeHi = 15 * 60
+	waitTimeLo = 5 * 60
+	lastSeenTime = 5 * 60 #seconds
+	percentChanceOfFire = [0, 5, 15, 45, 75, 80, 90, 98, 98, 98, 99, 99, 99, 99, 99]
+	
+	if TEST:
+		chn = 391240149897576451 # test channel
+		waitTimeHi = 8 * 60
+		waitTimeLo = 5 * 60
+		
+	lastFired = int(time.time())
+	print("starting loop")
+	await bot.wait_until_ready()
+	channel = bot.get_channel(chn)
+	print(channel)
+	print(bot.is_closed())
+	while not bot.is_closed():
+		#calc next wait time
+		waitTime = random.randint(waitTimeLo, waitTimeHi)
+		#get list of eligible players
+		eligible_players = bimbo.get_last_seen(lastSeenTime)
+		#how many are there?
+		num_eligible_players = len(eligible_players)
+		
+		#set chance of firing this round, based on # of recent players
+		this_round_chance_of_fire = 0
+		if num_eligible_players > len(percentChanceOfFire):
+			this_round_chance_of_fire = 99
+		else:
+			this_round_chance_of_fire = percentChanceOfFire[num_eligible_players]
+		
+		# Does it fire??
+		fire = False
+		dieRoll = random.randint(1,100)
+		if TEST:
+			await channel.send("Cannon set! {} players = Must roll a {} or less...rolled a {}....".format(num_eligible_players, this_round_chance_of_fire, dieRoll))
+			
+		if dieRoll <= this_round_chance_of_fire:
+			print("{} --> CANNON FIRED with {} players. (Rolled a {}.) Next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), num_eligible_players, dieRoll,  waitTime / 60))
+			await bimbo.cannon(bot, channel)
+		else: 
+			print("{} --> Cannon did NOT fire with {} players. (Rolled a {}.) Next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), num_eligible_players, dieRoll, waitTime / 60))
+			if num_eligible_players > 0:	
+				await channel.send("{} **CLICK! The __BetYourBimbo Token Cannon__ fails to go off. Better luck next time!**".format(time.strftime("%H:%M %Z")))
+				if num_eligible_players < 4:
+					await channel.send("__**HINT:**__ The more players seen by the bot, the better the chances of cannon fire!")
+		await asyncio.sleep(waitTime)
+
+
 async def cannonFire(bot,TEST):
 	chn = 355797842876563456  # production channel
 	
@@ -242,8 +294,8 @@ async def cannonFire(bot,TEST):
 	
 	if TEST:
 		chn = 391240149897576451 # test channel
-		lowFireMins = 0
-		hiFireMins = 2
+		lowFireMins = 30
+		hiFireMins = 180
 		
 	lastFired = int(time.time())
 	print("starting loop")
@@ -265,7 +317,7 @@ async def cannonFire(bot,TEST):
 		await asyncio.sleep(waitTime)
 
 
-bot.loop.create_task(cannonFire(bot,TEST))
+bot.loop.create_task(cannonFireOnActivity(bot,TEST))
 
 if TEST:
 	bot.run(test_key)

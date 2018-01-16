@@ -927,9 +927,11 @@ class BetYourBimbo():
 		o = self.effects(ctx, recipient, num, gender)
 		await ctx.send(o)
 	
-	async def cannon(self, bot, channel, lastFired):
+	
+
+	async def cannon(self, bot, channel):
 		eligible = self.get_last_seen(600)  # 600 = 10 minutes seen time
-		possible = ['E', 'T', 'N']
+		possible = ['E', 'E', 'E', 'T', 'T', 'N']
 		await channel.send("__**BOOM!  The Bimbo Cannon goes off, showering the room in BetYourBimbo tokens!**__")
 		if eligible == []:
 			await channel.send("__**Oh no!**__  No one's around....All of the tokens & effects fade into the ether.\nBetter luck next time!")
