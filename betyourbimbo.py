@@ -267,7 +267,7 @@ class BetYourBimbo():
 		dbEffect = cursor.fetchall()
 		#print(dbEffect)
 		if len(dbEffect) == 0:
-			return "**Sorry! -** <@userid> doesn't have any such token!"
+			return "**Sorry! -** <@{}> doesn't have any such token!".format(fromuserid)
 		dbEffect = dbEffect[0]
 		nowtime = int(time.time())
 		cursor.execute("UPDATE current SET UserID = ? WHERE (Type = 'T' AND UserID = ? AND ID = ?)" , (touserid, fromuserid, tokenid))

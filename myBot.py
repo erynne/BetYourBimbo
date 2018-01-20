@@ -218,7 +218,7 @@ async def stay(ctx, force="no"):
 async def on_message(message):
 	global CMD_PREFIX, idlesince
 
-	accept_channels = ["bot_test", "betyourbimbo"]
+	accept_channels = ["the-test-bed", "betyourbimbo"]
 	chn = str(message.channel)
 	#srv = str(message.guild)
 	if chn not in accept_channels and chn[0:14] != "Direct Message":
@@ -243,7 +243,7 @@ async def cannonFireOnActivity(bot, TEST):
 	percentChanceOfFire = [0, 5, 15, 45, 75, 80, 90, 98, 98, 98, 99, 99, 99, 99, 99]
 	
 	if TEST:
-		chn = 391240149897576451 # test channel
+		chn = 404295790853357596 # test channel
 		waitTimeHi = 8 * 60
 		waitTimeLo = 5 * 60
 		
@@ -293,7 +293,7 @@ async def cannonFire(bot,TEST):
 	hiFireMins = 90
 	
 	if TEST:
-		chn = 391240149897576451 # test channel
+		chn = 404295790853357596 # test-bed channel
 		lowFireMins = 30
 		hiFireMins = 180
 		
