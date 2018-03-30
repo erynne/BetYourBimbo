@@ -74,4 +74,7 @@ class Player:
 			o = "<@{}> has {} for {}".format(player.name, player.getHand(), player.getBJCount())
 				
 
+
+class Dealer(Player):
+	pass
 		

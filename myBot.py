@@ -52,7 +52,8 @@ def storeUserInfo(message):
 	gender = bimbo.getUserGender(authorID)
 	name = message.author.name if message.author.nick is None else message.author.nick
 	#print(authorID, gender, int(time.time()), name)
-	cursor.execute("INSERT OR REPLACE INTO userinfo (userid, gender, lastSeen, Name) values (?,?,?,?)", (authorID, gender, int(time.time()), name))
+	
+	cursor.execute("INSERT OR REPLACE INTO userinfo (userid, gender, lastseen, name, wins, losses, pushes, bjs) VALUES (?,?,?,?, COALESCE((SELECT wins FROM userinfo WHERE userid = ?), 0), COALESCE((SELECT losses FROM userinfo WHERE userid = ?), 0), COALESCE((SELECT pushes FROM userinfo WHERE userid = ?), 0), COALESCE((SELECT bjs FROM userinfo WHERE userid = ?), 0));", (authorID, gender, int(time.time()), name, authorID, authorID, authorID, authorID))
 	db.commit()
 	db.close()
 
@@ -86,10 +87,11 @@ async def on_ready():
 	print("{} --> Auth URL: {}".format(time.strftime("%m/%d/%y %H:%M %Z"), discord.utils.oauth_url(bot.user.id, permissions=None,)))
 	print('------')
 	bot.load_extension("betyourbimbo")
+	bot.load_extension("drinks")
 
 
 
-@bot.command()
+@bot.command(aliases=['startbj','start'])
 async def startBJ(ctx):
 	"""Start a game of blackjack (Note: will reset an ongoing game!)"""
 	global game
@@ -99,7 +101,7 @@ async def startBJ(ctx):
 	
 	
 	
-@bot.command()
+@bot.command(aliases=['stop','stopbj'])
 async def stopBJ(ctx):
 	"""Stop an active game of blackjack & reset everything."""
 	global game
@@ -110,7 +112,7 @@ async def stopBJ(ctx):
 	
 	
 	
-@bot.command()
+@bot.command(aliases=['play','in'])
 async def playing(ctx):
 	"""Tell the Dealer that you're playing in the next game"""
 	global game	
@@ -132,12 +134,12 @@ async def out(ctx):
 	
 	
 
-@bot.command()
+@bot.command(aliases=['deal','dealbj'])
 async def dealBJ(ctx):
 	"""Deal cards to all players & dealer. (Note: 1 player must be playing)"""
 	global game
 
-	o = game.startHand()
+	o = game.startHand(ctx.message.author.id)
 	await ctx.send(o)
 	
 	print("{} --> Game State -----> {}".format(time.strftime("%m/%d/%y %H:%M %Z"), game.state))
@@ -163,7 +165,7 @@ async def split(ctx):
 
 
 		
-@bot.command()
+@bot.command(aliases=['HIT','hitme'])
 async def hit(ctx):
 	"""Blackjack: Take an additional card into your hand."""
 	global game
@@ -180,7 +182,7 @@ async def hit(ctx):
 	
 
 	
-@bot.command()
+@bot.command(aliases=['STAY','stand'])
 async def stay(ctx, force="no"):
 	"""Blackjack: End your turn without taking an additional card."""
 	global game
@@ -244,8 +246,9 @@ async def cannonFireOnActivity(bot, TEST):
 	
 	if TEST:
 		chn = 404295790853357596 # test channel
-		waitTimeHi = 8 * 60
-		waitTimeLo = 5 * 60
+		waitTimeHi = 10 * 60
+		waitTimeLo = 3 * 60
+		percentChanceOfFire = [0, 50, 50, 50, 75, 80, 90, 98, 98, 98, 99, 99, 99, 99, 99]
 		
 	lastFired = int(time.time())
 	print("starting loop")
@@ -271,8 +274,8 @@ async def cannonFireOnActivity(bot, TEST):
 		# Does it fire??
 		fire = False
 		dieRoll = random.randint(1,100)
-		if TEST:
-			await channel.send("Cannon set! {} players = Must roll a {} or less...rolled a {}....".format(num_eligible_players, this_round_chance_of_fire, dieRoll))
+		#if TEST:
+		#	await channel.send("Cannon set! {} players = Must roll a {} or less...rolled a {}....".format(num_eligible_players, this_round_chance_of_fire, dieRoll))
 			
 		if dieRoll <= this_round_chance_of_fire:
 			print("{} --> CANNON FIRED with {} players. (Rolled a {}.) Next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), num_eligible_players, dieRoll,  waitTime / 60))
@@ -286,35 +289,35 @@ async def cannonFireOnActivity(bot, TEST):
 		await asyncio.sleep(waitTime)
 
 
-async def cannonFire(bot,TEST):
-	chn = 355797842876563456  # production channel
+#async def cannonFire(bot,TEST):
+	#chn = 355797842876563456  # production channel
 	
-	lowFireMins = 10
-	hiFireMins = 90
+	#lowFireMins = 10
+	#hiFireMins = 90
 	
-	if TEST:
-		chn = 404295790853357596 # test-bed channel
-		lowFireMins = 30
-		hiFireMins = 180
+	#if TEST:
+		#chn = 404295790853357596 # test-bed channel
+		#lowFireMins = 30
+		#hiFireMins = 180
 		
-	lastFired = int(time.time())
-	print("starting loop")
-	await bot.wait_until_ready()
-	counter = 0
-	channel = bot.get_channel(chn)
-	print(channel)
-	print(bot.is_closed())
-	while not bot.is_closed():
-		waitTime = random.randint((lowFireMins * 60), (hiFireMins * 60))
-		if counter > 0:
-			print("{} --> next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), waitTime / 60))
-			await bimbo.cannon(bot, channel, lastFired)
-			await channel.send("**The __BetYourBimbo Token Cannon__ is armed once again and will fire sometime in the next {} - {} minutes!**".format(lowFireMins, hiFireMins))
-		else: 
-			print("{} --> next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), waitTime / 60))
-			await channel.send("**The __BetYourBimbo Token Cannon__ is armed and will fire sometime in the next {} - {} minutes!**".format(lowFireMins, hiFireMins))
-		counter += 1
-		await asyncio.sleep(waitTime)
+	#lastFired = int(time.time())
+	#print("starting loop")
+	#await bot.wait_until_ready()
+	#counter = 0
+	#channel = bot.get_channel(chn)
+	#print(channel)
+	#print(bot.is_closed())
+	#while not bot.is_closed():
+		#waitTime = random.randint((lowFireMins * 60), (hiFireMins * 60))
+		#if counter > 0:
+			#print("{} --> next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), waitTime / 60))
+			#await bimbo.cannon(bot, channel, lastFired)
+			#await channel.send("**The __BetYourBimbo Token Cannon__ is armed once again and will fire sometime in the next {} - {} minutes!**".format(lowFireMins, hiFireMins))
+		#else: 
+			#print("{} --> next cannon in {} mins".format(time.strftime("%m/%d/%y %H:%M %Z"), waitTime / 60))
+			#await channel.send("**The __BetYourBimbo Token Cannon__ is armed and will fire sometime in the next {} - {} minutes!**".format(lowFireMins, hiFireMins))
+		#counter += 1
+		#await asyncio.sleep(waitTime)
 
 
 bot.loop.create_task(cannonFireOnActivity(bot,TEST))

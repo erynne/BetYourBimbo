@@ -17,7 +17,7 @@ class Game:
 		self.set_game_state("START")
 		self.players = []
 		self.turn = 0
-		self.dealer = player.Player("Dealer")
+		self.dealer = player.Dealer("Dealer")
 		self.deck = cards.Cards(numDecks)
 		self.set_game_state("WAITING_ON_PLAYERS")
 		
@@ -120,6 +120,7 @@ class Game:
 					self.bimbo.tallyReward(player.name, 'L')
 				elif player.getBJCount() == self.dealer.getBJCount():
 					o += "\n<@{}> has tied the dealer for a push. No harm, no foul!".format(player.name)
+					self.bimbo.tallyReward(player.name, 'P')
 				else:
 					o += "\n<@{}> has {} and wins! Roll the dice (__!token__) for your token, or you may remove an effect (__!removeEffect id#__)!".format(player.name, player.getBJCount())
 					self.bimbo.tallyReward(player.name, 'W')
@@ -266,10 +267,10 @@ class Game:
 		return o
 		
 		
-	def startHand(self):
+	def startHand(self, playerInitiating):
 		o = ""
 		
-		if not self.checkCooldown():
+		if not self.checkCooldown() and not self.bimbo.isOwlCoEmployee(playerInitiating):
 			o = "***ERROR:*** Can't start for {} seconds ({} sec cooldown between games)".format(self.getRemainingCooldown(), self.COOLDOWN_PERIOD)
 			o += "\nNew players may join by typing __!playing__"
 			o += "\nPlayers may leave the game at this point by typing __!out__"
@@ -289,6 +290,7 @@ class Game:
 			self.set_game_state("READY")
 			
 			#Now we're ready to go
+			o += "\n**Current count is {}**\n".format(self.deck.count)
 			o += "\nDealing two cards to each player & dealer...\n"
 			self.dealBlackjack()
 			
@@ -333,3 +335,4 @@ class Game:
 				return "Player <@{}> removed".format(playerID)
 		else:
 			return "Can't do that yet..."
+
