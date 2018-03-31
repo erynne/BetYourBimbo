@@ -87,9 +87,9 @@ class Game:
 	def resolveGame(self):
 		output = []
 		o = ""
-		#reveal dealer's card
+		# reveal dealer's card
 		o += "Dealer's hand: {} for {}".format(self.dealer.getHand(), self.dealer.getBJCount())
-		while (self.dealer.getBJCount() < 17 and self.dealer.status == "OK"):
+		while self.dealer.getBJCount() < 17 and self.dealer.status == "OK":
 			o += "\nDealer hits..."
 			newCard = self.deck.deal()
 			self.dealer.addCard(newCard)
@@ -102,7 +102,7 @@ class Game:
 		
 		output.append(o)
 			
-		#cycle through players
+		# cycle through players
 		o = "__**Let's see how this all plays out, shall we?**__"
 		for player in self.players:
 			if player.status == "BJ":
@@ -111,7 +111,7 @@ class Game:
 			elif player.status == "BUST":
 				o += "\n<@{}> has busted. Roll the dice (__!effect__) for your penalty!".format(player.name)
 				self.bimbo.tallyReward(player.name, 'L')
-			else: #player.status == "OK" or player.status == "DBL":
+			else:  # player.status == "OK" or player.status == "DBL":
 				if self.dealer.status == "BUST":
 					o+= "\nDealer busts, <@{}> did not, and WINS!.... Roll the dice (__!token__) for your token, or you may remove an effect (__!removeEffect id#__)!".format(player.name)
 					self.bimbo.tallyReward(player.name, 'W')
